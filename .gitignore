@@ -1,5 +1,6 @@
 # Project-specific ignores
 data/
+models/
 
 
 # Byte-compiled / optimized / DLL files
