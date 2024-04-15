@@ -1,6 +1,6 @@
 # Project-specific ignores
 reports/first_results*
-data/
+data/*
 models/
 *.zip
 config.py
