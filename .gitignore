@@ -5,10 +5,6 @@ models/*
 *.zip
 config.py
 
-# Except for
-!models/readme.txt
-
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
