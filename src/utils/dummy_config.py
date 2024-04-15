@@ -6,6 +6,16 @@
 """
 
 
+
+"""
+--> !!IMPORTANT NOTE!! <--
+
+This configuration file should NOT be used. We recommend using yours config.py
+file and this file right here serves only as an example. Enjoy!
+"""
+
+
+
 import os
 
 # Data
