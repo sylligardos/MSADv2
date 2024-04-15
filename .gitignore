@@ -1,9 +1,13 @@
 # Project-specific ignores
 reports/first_results*
 data/*
-models/
+models/*
 *.zip
 config.py
+
+# Except for
+!models/readme.txt
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
