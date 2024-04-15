@@ -1,6 +1,8 @@
 # Project-specific ignores
+reports/first_results*
 data/
 models/
+*.zip
 
 
 # Byte-compiled / optimized / DLL files
