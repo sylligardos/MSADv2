@@ -21,12 +21,25 @@ def run_experiment(k_values, combine_methods, selected_dataset_index=None):
 	results = {method: [] for method in combine_methods}
 	window_data_path = generate_window_data_path(window_size)
 
+	# SKIP NASA OMG ...
+	dataloader = Dataloader(raw_data_path, window_data_path)
+	datasets = dataloader.get_dataset_names()
+	if "NASA" in datasets[selected_dataset_index]:
+		return f"Skipping {datasets[selected_dataset_index]}"
+
 	# Load the segmented time series and their ground truth, x - y
 	raw_timeseries, raw_anomalies, timeseries_names, window_timeseries = load_timeseries(raw_data_path, window_data_path, selected_dataset_index)
 	window_labels, window_timeseries = window_timeseries['label'], window_timeseries.drop('label', axis=1)
-
+	
 	# Load the 12 anomaly scores of the time series
-	scores = load_anomaly_scores(scores_path, timeseries_names)
+	scores, idx_failed = load_anomaly_scores(scores_path, timeseries_names)
+	if len(idx_failed) > 0:
+		df_indexes_to_delete = [timeseries_names[i] for i in idx_failed]
+		window_timeseries = window_timeseries[~window_timeseries.index.str.contains('|'.join(df_indexes_to_delete))]
+		for idx in sorted(idx_failed, reverse=True):
+			del timeseries_names[idx]
+			del raw_anomalies[idx]
+			del raw_timeseries[idx]
 
 	# Load a model selector (obviously window size between time series and model selector should match)
 	model = load_model_selector(
@@ -56,8 +69,6 @@ def run_experiment(k_values, combine_methods, selected_dataset_index=None):
 			results[combine_method].append(np.mean(compute_metrics(raw_anomalies, weighted_scores)))
 
 	# Save the results dictionary to a CSV file
-	dataloader = Dataloader(raw_data_path, window_data_path)
-	datasets = dataloader.get_dataset_names()
 	save_results_to_csv(results, k_values, datasets[selected_dataset_index])
 
 	return results
@@ -69,9 +80,10 @@ def run_experiment(k_values, combine_methods, selected_dataset_index=None):
 
 
 def main():
-	k_values = [1, 3, 5, 7]  # Different values of k
+	# k_values = np.arange(1, 13)  # Different values of k
+	k_values = [1, 3, 5, 7]
 	combine_methods = ['average', 'to_vote']  # Different ways to combine the probabilities
-	selected_dataset_indexes = [17]  # Index of the selected dataset
+	selected_dataset_indexes = np.arange(12, 18)  # Index of the selected dataset
 
 	for selected_dataset_index in selected_dataset_indexes:
 		results = run_experiment(k_values, combine_methods, selected_dataset_index)

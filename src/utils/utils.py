@@ -43,8 +43,8 @@ def load_timeseries(raw_data_path, window_data_path, selected_index=None):
 	df_list = []
 	for dataset in datasets:
 		print(dataset)
-		curr_df = dataloader.load_window_timeseries(dataset)
 		curr_x, curr_y, curr_fnames = dataloader.load_raw_dataset(dataset)
+		curr_df = dataloader.load_window_timeseries(dataset)
 
 		df_list.append(curr_df)				
 		x.extend(curr_x)
@@ -91,16 +91,17 @@ def load_model_selector(model, model_parameters_file, weights_path, window_size)
 def predict_timeseries(model, df, fnames):
 	preds = []
 	tensor_softmax = nn.Softmax(dim=1)
+	device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 	# Compute predictions and inference time
 	for fname in tqdm(fnames, desc="Predicting", leave=False):
 		# Df to tensor
 		x = df.filter(like=fname, axis=0)
-		data_tensor = torch.tensor(x.values, dtype=torch.float32).unsqueeze(1)
+		data_tensor = torch.tensor(x.values, dtype=torch.float32).unsqueeze(1).to(device)
 		with torch.no_grad():
 			curr_prediction = model(data_tensor)
 			curr_prediction = tensor_softmax(curr_prediction)
-		preds.append(curr_prediction.detach().numpy())
+		preds.append(curr_prediction.cpu().detach().numpy())
 
 	return preds
 
@@ -159,10 +160,10 @@ def load_anomaly_scores(path, fnames):
 	scoreloader = Scoreloader(path)
 
 	scores, idx_failed = scoreloader.load(fnames)
-	if len(idx_failed) > 0:
-		raise ValueError("Some scores failed, take care")
+	# if len(idx_failed) > 0:
+	# 	raise ValueError("Some scores failed, take care")
 
-	return scores
+	return scores, idx_failed
 
 
 def combine_anomaly_scores(scores, weights):
