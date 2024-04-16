@@ -83,7 +83,7 @@ def main():
 	# k_values = np.arange(1, 13)  # Different values of k
 	k_values = [1, 3, 5, 7]
 	combine_methods = ['average', 'to_vote']  # Different ways to combine the probabilities
-	selected_dataset_indexes = np.arange(12, 18)  # Index of the selected dataset
+	selected_dataset_indexes = np.arange(13, 18)  # Index of the selected dataset
 
 	for selected_dataset_index in selected_dataset_indexes:
 		results = run_experiment(k_values, combine_methods, selected_dataset_index)
