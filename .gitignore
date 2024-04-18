@@ -4,6 +4,8 @@ data/*
 models/*
 *.zip
 config.py
+reports/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

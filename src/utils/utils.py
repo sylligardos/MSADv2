@@ -11,7 +11,7 @@ from data.scoreloader import Scoreloader
 from models.model.convnet import ConvNet
 from models.model.resnet import ResNetBaseline
 from models.model.sit import SignalTransformer
-from utils.config import model_parameters_file, weights_path
+from utils.config import model_parameters_file, weights_path, feature_data_path, data_dir
 
 import numpy as np
 import pandas as pd
@@ -23,13 +23,15 @@ import torch.nn as nn
 from scipy.special import softmax
 import matplotlib.pyplot as plt
 from sklearn import metrics
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from tqdm import tqdm
 from datetime import datetime
 from pathlib import Path
 import pickle
+import math
 
 
-def load_data(raw_data_path, window_data_path, selected_dataset_index, scores_path):
+def load_data(raw_data_path, window_data_path, feature_data_path, selected_dataset_index, scores_path, features, split_file=None):
 	"""
 	Load segmented time series, ground truth, anomaly scores, and related data.
 
@@ -46,7 +48,7 @@ def load_data(raw_data_path, window_data_path, selected_dataset_index, scores_pa
 	- scores (array): Anomaly scores of the time series.
 	"""
 	# Load the segmented time series and their ground truth, x - y
-	raw_timeseries, raw_anomalies, timeseries_names, window_timeseries = load_timeseries(raw_data_path, window_data_path, selected_dataset_index)
+	raw_timeseries, raw_anomalies, timeseries_names, window_timeseries = load_timeseries(raw_data_path, window_data_path, feature_data_path, selected_dataset_index, features)
 	window_labels, window_timeseries = window_timeseries['label'], window_timeseries.drop('label', axis=1)
 	
 	# Load the 12 anomaly scores of the time series
@@ -59,13 +61,32 @@ def load_data(raw_data_path, window_data_path, selected_dataset_index, scores_pa
 			del raw_anomalies[idx]
 			del raw_timeseries[idx]
 
+	# Only if a split has been given, then keep only certain time series
+	if split_file is not None:
+		split_data = pd.read_csv(split_file, index_col=0)
+		if "val_set" in split_data.index:
+			split_fnames = set([x[:-len('.csv')] for x in split_data.loc['val_set'].tolist() if not isinstance(x, float) or not math.isnan(x)])
+		elif "test_set" in split_data.index:
+			split_fnames = set([x[:-len('.csv')] for x in split_data.loc['test_set'].tolist() if not isinstance(x, float) or not math.isnan(x)])
+		else:
+			raise ValueError("This split file does not have the expected format")	
+		idx_to_remove = [i for i, x in enumerate(timeseries_names) if x not in split_fnames]
+		
+		df_indexes_to_delete = [timeseries_names[i] for i in idx_to_remove]
+		window_timeseries = window_timeseries[~window_timeseries.index.str.contains('|'.join(df_indexes_to_delete))]
+		for idx in sorted(idx_to_remove, reverse=True):
+			del timeseries_names[idx]
+			del raw_anomalies[idx]
+			del raw_timeseries[idx]
+			del scores[idx]
+
 	return raw_anomalies, timeseries_names, window_timeseries, scores
 
 
-def load_timeseries(raw_data_path, window_data_path, selected_index=None):
+def load_timeseries(raw_data_path, window_data_path, feature_data_path, selected_index=None, features=False):
 	
 	# Create dataloader object
-	dataloader = Dataloader(raw_data_path, window_data_path)
+	dataloader = Dataloader(raw_data_path, window_data_path, feature_data_path)
 	
 	# Read available datasets
 	datasets = dataloader.get_dataset_names()
@@ -83,7 +104,7 @@ def load_timeseries(raw_data_path, window_data_path, selected_index=None):
 	for dataset in datasets:
 		print(dataset)
 		curr_x, curr_y, curr_fnames = dataloader.load_raw_dataset(dataset)
-		curr_df = dataloader.load_window_timeseries(dataset)
+		curr_df = dataloader.load_window_timeseries(dataset) if not features else dataloader.load_feature_timeseries(dataset)
 
 		df_list.append(curr_df)				
 		x.extend(curr_x)
@@ -116,11 +137,10 @@ def predict_timeseries(model_name, model, df, fnames):
 
     Returns:
     - predictions (array): Predicted anomalies for the time series data.
-    """
-	return predict_deep(model, df, fnames) if is_deep_learning_model(model_name) else predict_classic(model, df, fnames)
+    """	
+	return get_prediction_function(model_name)(model, df, fnames)
 
-
-def is_deep_learning_model(model_name):
+def get_prediction_function(model_name):
 	"""
 	Check if the model name corresponds to a deep learning model.
 
@@ -128,21 +148,23 @@ def is_deep_learning_model(model_name):
 	- model_name (str): Name of the model.
 
 	Returns:
-	- is_deep_learning (bool): True if the model is a deep learning model, False otherwise.
+	- is_deep_learning (function): return the function to predict with
 	
 	Raises:
 	- ValueError: If the model name is not recognized.
 	"""
 	deep_learning_models = ['convnet', 'resnet', 'sit']
-	classic_models = ['knn', 'rocket']
+	feature_models = ['knn']
+	rocket_models = ['rocket']
 
 	if model_name.lower() in deep_learning_models:
-		return True
-	elif model_name.lower() in classic_models:
-		return False
+		return predict_deep
+	elif model_name.lower() in feature_models:
+		return predict_feature
+	elif model_name.lower() in rocket_models:
+		return predict_rocket
 	else:
 		raise ValueError("Unrecognized model name. Please provide a valid model name.")
-
 
 
 def predict_deep(model, df, fnames):
@@ -162,14 +184,25 @@ def predict_deep(model, df, fnames):
 
 	return preds
 
-def predict_classic(model, df, fnames):
+def predict_feature(model, df, fnames):
 	preds = []
 	
 	# Compute predictions and inference time
 	for fname in tqdm(fnames, desc="Predicting", leave=False):
 		# Df to tensor
 		x = df.filter(like=fname, axis=0)
-		curr_prediction = model.predict(x.values)
+		curr_prediction = model.predict_proba(x)
+		preds.append(curr_prediction)
+
+	return preds
+
+def predict_rocket(model, df, fnames):
+	preds = []
+	
+	# Compute predictions and inference time
+	for fname in tqdm(fnames, desc="Predicting", leave=False):
+		x = df.filter(like=fname, axis=0).values[:, np.newaxis]
+		curr_prediction = model.decision_function(x)
 		preds.append(curr_prediction)
 
 	return preds
@@ -452,3 +485,31 @@ def load_classic_model(path):
 		output = pickle.load(input)
 	
 	return output
+
+
+def find_file_with_substring(directory_path, substring):
+	"""
+	Find a file within a directory that contains a specified substring in its name.
+
+	Args:
+	- directory_path (str): Path to the directory where the file should be searched.
+	- substring (str): Substring to search for in the filenames.
+
+	Returns:
+	- file_path (str): Path to the file containing the specified substring.
+	"""
+	for file_name in os.listdir(directory_path):
+		if substring in file_name and '.csv' in file_name:
+			return os.path.join(directory_path, file_name)
+	return None
+
+
+def generate_window_data_path(window_size):
+	if window_size not in [16, 32, 64, 128, 256, 512, 768, 1024]:
+		raise ValueError(f"Window size {window_size} is not available")
+	return os.path.join(data_dir, f"TSB_{window_size}")
+
+def generate_feature_data_path(window_size):
+	if window_size not in [16, 32, 64, 128, 256, 512, 768, 1024]:
+		raise ValueError(f"Window size {window_size} is not available")
+	return os.path.join(feature_data_path, f"TSFRESH_TSB_{window_size}.csv")

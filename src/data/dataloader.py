@@ -17,7 +17,7 @@ import numpy as np
 class Dataloader:
 	"""A class for loading the data"""
 
-	def __init__(self, raw_data_path, window_data_path):
+	def __init__(self, raw_data_path, window_data_path, feature_data_path):
 		"""
 		Initialize the Dataloader.
 
@@ -26,6 +26,7 @@ class Dataloader:
 		"""
 		self.raw_data_path = raw_data_path
 		self.window_data_path = window_data_path
+		self.feature_data_path = feature_data_path
 
 
 	def get_dataset_names(self):
@@ -106,34 +107,45 @@ class Dataloader:
 		df = pd.concat(df_list)
 
 		return df
+	
+
+	def load_feature_timeseries(self, dataset):
+		# Check if dataset exists
+		if dataset not in self.get_dataset_names():
+			raise ValueError(f'Dataset {dataset} not in dataset list')
+
+		df = pd.read_csv(self.feature_data_path, index_col=0)
+		df = df.filter(like=dataset, axis=0)
+		
+		return df
 
 
-	def load_timeseries(self, timeseries):
-		'''
-		Loads specified timeseries
+	# def load_timeseries(self, timeseries):
+	# 	'''
+	# 	Loads specified timeseries
 
-		:param fnames: list of file names
-		:return x: timeseries
-		:return y: corresponding labels
-		:return fnames: list of names of the timeseries loaded
-		'''
-		x = []
-		y = []
-		fnames = []
+	# 	:param fnames: list of file names
+	# 	:return x: timeseries
+	# 	:return y: corresponding labels
+	# 	:return fnames: list of names of the timeseries loaded
+	# 	'''
+	# 	x = []
+	# 	y = []
+	# 	fnames = []
 
-		for fname in tqdm(timeseries, desc='Loading timeseries'):
-			curr_data = pd.read_csv(os.path.join(self.data_path, fname), header=None).to_numpy()
+	# 	for fname in tqdm(timeseries, desc='Loading timeseries'):
+	# 		curr_data = pd.read_csv(os.path.join(self.data_path, fname), header=None).to_numpy()
 			
-			if curr_data.ndim != 2:
-				raise ValueError('did not expect this shape of data: \'{}\', {}'.format(fname, curr_data.shape))
+	# 		if curr_data.ndim != 2:
+	# 			raise ValueError('did not expect this shape of data: \'{}\', {}'.format(fname, curr_data.shape))
 
-			# Skip files with no anomalies
-			if not np.all(curr_data[0, 1] == curr_data[:, 1]):
-				x.append(curr_data[:, 0])
-				y.append(curr_data[:, 1])
-				fnames.append(fname)
+	# 		# Skip files with no anomalies
+	# 		if not np.all(curr_data[0, 1] == curr_data[:, 1]):
+	# 			x.append(curr_data[:, 0])
+	# 			y.append(curr_data[:, 1])
+	# 			fnames.append(fname)
 
-		return x, y, fnames
+	# 	return x, y, fnames
 
 
 # class Dataloader:

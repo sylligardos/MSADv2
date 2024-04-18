@@ -11,17 +11,18 @@ import numpy as np
 import csv
 import pandas as pd
 
-from utils.config import raw_data_path, generate_window_data_path, scores_path
+from utils.config import raw_data_path, scores_path, split_file_path
 from utils.utils import \
-	load_data, load_model, predict_timeseries, compute_metrics, \
-	compute_weighted_scores
+	load_data, load_model, predict_timeseries, compute_metrics, generate_window_data_path, generate_feature_data_path,  \
+	compute_weighted_scores, find_file_with_substring
 from data.dataloader import Dataloader
 
 
 def run_experiment(k_values, combine_methods, selected_dataset_index, model_name, window_size):
 	results = []
 	window_data_path = generate_window_data_path(window_size)
-	dataloader = Dataloader(raw_data_path, window_data_path)
+	feature_data_path = generate_feature_data_path(window_size)
+	dataloader = Dataloader(raw_data_path, window_data_path, feature_data_path)
 	datasets = dataloader.get_dataset_names()
 	metric="AUC-PR"
 	
@@ -30,7 +31,15 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 		return f"Skipping {datasets[selected_dataset_index]}"
 
 	# Load the segmented time series, their ground truth, and their scores
-	raw_anomalies, timeseries_names, window_timeseries, scores = load_data(raw_data_path, window_data_path, selected_dataset_index, scores_path)
+	raw_anomalies, timeseries_names, window_timeseries, scores = load_data(
+		raw_data_path, 
+		window_data_path,
+		feature_data_path,
+		selected_dataset_index, 
+		scores_path,
+		(model_name=="knn"),
+		find_file_with_substring(split_file_path, str(window_size))
+	)
 
 	# Load a model selector (obviously window size between time series and model selector should match)
 	model = load_model(model_name, window_size)
@@ -60,12 +69,17 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 
 def main():
 	k_values = np.arange(1, 13)
-	combine_methods = ['average', 'vote']  # Different ways to combine the probabilities of the multiple windows per time series
 	selected_dataset_indexes = np.arange(0, 18)  # Index of the selected dataset
 	model_selectors = [("resnet", 1024), ("convnet", 128), ("sit", 512), ("rocket", 128), ("knn", 1024)]
-	model_idx = 2
+	model_idx = 4
 
-	for selected_dataset_index in [4]:
+	# Rocket can not predict probabilities
+	if model_selectors[model_idx][0] == "rocket":
+		combine_methods = ['vote']
+	else:
+		combine_methods = ['average', 'vote']
+
+	for selected_dataset_index in [3]:
 		results = run_experiment(
 			k_values, 
 			combine_methods, 
