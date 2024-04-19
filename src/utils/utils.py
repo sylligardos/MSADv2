@@ -306,16 +306,16 @@ def compute_weighted_scores(window_pred_probabilities, scores, combine_method, k
 
 	# Combine the predicted probabilities from multiple windows into a single vector
 	if combine_method == 'average':
-		pred_probabilities = combine_probabilities_average(window_pred_probabilities, k)
+		weights = combine_probabilities_average(window_pred_probabilities, k)
 	elif combine_method == 'vote':
-		pred_probabilities = combine_probabilities_vote(window_pred_probabilities, k)
+		weights = combine_probabilities_vote(window_pred_probabilities, k)
 	else:
 		raise ValueError("Invalid combine_method. Choose either 'average' or 'vote'.")
 
 	# Average the scores according to the weights
-	weighted_scores = combine_anomaly_scores(scores, pred_probabilities)
+	weighted_scores = combine_anomaly_scores(scores, weights)
 
-	return weighted_scores
+	return np.array(weights), weighted_scores
 
 
 def compute_metrics(labels, scores):
@@ -327,7 +327,7 @@ def compute_metrics(labels, scores):
 		result = metrics.auc(recall, precision)
 		all_results.append(result)
 
-	return all_results
+	return np.array(all_results)
 
 
 def load_json(file_path):
@@ -513,3 +513,19 @@ def generate_feature_data_path(window_size):
 	if window_size not in [16, 32, 64, 128, 256, 512, 768, 1024]:
 		raise ValueError(f"Window size {window_size} is not available")
 	return os.path.join(feature_data_path, f"TSFRESH_TSB_{window_size}.csv")
+
+
+detector_names = [
+	'AE', 
+	'CNN', 
+	'HBOS', 
+	'IFOREST', 
+	'IFOREST1', 
+	'LOF', 
+	'LSTM', 
+	'MP', 
+	'NORMA', 
+	'OCSVM', 
+	'PCA', 
+	'POLY'
+]
