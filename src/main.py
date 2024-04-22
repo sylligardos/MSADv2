@@ -57,6 +57,8 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 	for k in k_values:
 		for combine_method in combine_methods:
 			weights, weighted_scores = compute_weighted_scores(window_pred_probabilities, scores, combine_method, k)
+			print(weights)
+			exit()
 			
 			# Compute the metric value of the combined anomaly score
 			metric_results = compute_metrics(raw_anomalies, weighted_scores)
@@ -79,9 +81,9 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 def main():
 	k_values = np.arange(1, 13)
 	selected_dataset_indexes = np.arange(0, 18)  # Index of the selected dataset
-	model_selectors = [("resnet", 1024), ("convnet", 128), ("sit", 512), ("rocket", 128), ("knn", 1024)]
+	model_selectors = [("resnet", 1024), ("convnet", 128), ("sit", 512), ("knn", 1024)] 	# ("rocket", 128) is off for now
 	combine_methods = ['average', 'vote']
-	model_idx = 2
+	model_idx = 3
 
 	for selected_dataset_index in selected_dataset_indexes:
 		results = run_experiment(
