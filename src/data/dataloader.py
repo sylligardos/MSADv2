@@ -12,6 +12,8 @@ import pandas as pd
 from tqdm import tqdm
 import glob
 import numpy as np
+from multiprocessing import Pool
+
 
 
 class Dataloader:
@@ -41,6 +43,49 @@ class Dataloader:
 
 		return [x for x in names if os.path.isdir(os.path.join(self.raw_data_path, x))]
 		
+	def load_timeseries(self, filename):
+		"""
+		Load a single time series file.
+
+		Parameters:
+			filename (str): The path to the time series file.
+
+		Returns:
+			tuple: A tuple containing the time series data and the filename.
+		"""
+		data = pd.read_csv(filename, header=None).to_numpy()
+		if data.ndim != 2:
+			raise ValueError(f"Unexpected shape of data: '{filename}', {data.shape}")
+		if not np.all(data[0, 1] == data[:, 1]):
+			return data[:, 0], data[:, 1], "/".join(filename.split('/')[-2:])
+		else:
+			return None
+
+
+
+	def load_raw_dataset_parallel(self, dataset):
+		"""
+		Load the raw time series from the given dataset in parallel.
+
+		Parameters:
+			dataset (str): Name of the dataset to load.
+
+		Returns:
+			tuple: A tuple containing lists of time series data, labels, and filenames.
+		"""
+		if dataset not in self.get_dataset_names():
+			raise ValueError(f"Dataset {dataset} not in dataset list")
+
+		path = os.path.join(self.raw_data_path, dataset)
+		timeseries_files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.out')]
+
+		with Pool() as pool:
+			results = list(tqdm(pool.imap(self.load_timeseries, timeseries_files), total=len(timeseries_files), desc="Loading time series"))
+
+		x, y, fnames = zip(*[result for result in results if result is not None])
+
+		return list(x), list(y), list(fnames)
+
 
 	def load_raw_dataset(self, dataset):
 		"""

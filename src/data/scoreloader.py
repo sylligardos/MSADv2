@@ -10,6 +10,8 @@ import os
 from tqdm import tqdm
 import numpy as np 
 import pandas as pd
+from multiprocessing import Pool
+
 
 class Scoreloader:
 	def __init__(self, scores_path):
@@ -67,5 +69,55 @@ class Scoreloader:
 			for idx in sorted(idx_failed, reverse=True):
 				print('\t\'{}\''.format(file_names[idx]))
 				# del file_names[idx]
+
+		return scores, idx_failed
+
+
+	def load_score(self, args):
+		"""
+		Load scores for a single file.
+
+		Parameters:
+			filename (str): The path to the score file.
+
+		Returns:
+			numpy.ndarray: The loaded scores.
+		"""
+		filename, detectors = args
+		name_split = filename.split('/')[-2:]
+		paths = [os.path.join(self.scores_path, name_split[0], detector, 'score', name_split[1]) for detector in detectors]
+		data = []
+		try:
+			for path in paths:
+				data.append(pd.read_csv(path, header=None).to_numpy())
+			return np.concatenate(data, axis=1)
+		except Exception as e:
+			return None
+
+	def load_parallel(self, file_names):
+		"""
+		Load the scores for the specified files/timeseries in parallel.
+
+		Parameters:
+			file_names (list): List of file names.
+
+		Returns:
+			tuple: A tuple containing the loaded scores and a list of indexes of failed to load time series.
+		"""
+		detectors = self.get_detector_names()
+		scores = []
+		idx_failed = []
+
+		# Prepare arguments list
+		args_list = [(filename, detectors) for filename in file_names]
+
+		with Pool() as pool:
+			results = list(tqdm(pool.imap(self.load_score, args_list), total=len(file_names), desc='Loading scores'))
+
+		for i, result in enumerate(results):
+			if result is not None:
+				scores.append(result)
+			else:
+				idx_failed.append(i)
 
 		return scores, idx_failed
