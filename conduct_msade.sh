@@ -1,0 +1,8 @@
+sbatch shell_scripts/msade_supervised_0.sh
+sbatch shell_scripts/msade_supervised_1.sh
+sbatch shell_scripts/msade_supervised_2.sh
+sbatch shell_scripts/msade_supervised_3.sh
+sbatch shell_scripts/msade_unsupervised_0.sh
+sbatch shell_scripts/msade_unsupervised_1.sh
+sbatch shell_scripts/msade_unsupervised_2.sh
+sbatch shell_scripts/msade_unsupervised_3.sh

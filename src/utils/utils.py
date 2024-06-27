@@ -11,7 +11,7 @@ from data.scoreloader import Scoreloader
 from models.model.convnet import ConvNet
 from models.model.resnet import ResNetBaseline
 from models.model.sit import SignalTransformer
-from utils.config import model_parameters_file, weights_path, feature_data_path, data_dir
+from utils.config import model_parameters_file, supervised_weights_path, feature_data_path, data_dir
 
 import numpy as np
 import pandas as pd
@@ -29,6 +29,7 @@ from datetime import datetime
 from pathlib import Path
 import pickle
 import math
+from tsb_kit.vus.metrics import get_metrics
 
 
 def load_data(raw_data_path, window_data_path, feature_data_path, selected_dataset_index, scores_path, features, split_file=None):
@@ -50,7 +51,7 @@ def load_data(raw_data_path, window_data_path, feature_data_path, selected_datas
 	# Load the segmented time series and their ground truth, x - y
 	raw_timeseries, raw_anomalies, timeseries_names, window_timeseries = load_timeseries(raw_data_path, window_data_path, feature_data_path, selected_dataset_index, features)
 	window_labels, window_timeseries = window_timeseries['label'], window_timeseries.drop('label', axis=1)
-	
+
 	# Load the 12 anomaly scores of the time series
 	scores, idx_failed = load_anomaly_scores(scores_path, timeseries_names)
 	if len(idx_failed) > 0:
@@ -69,17 +70,18 @@ def load_data(raw_data_path, window_data_path, feature_data_path, selected_datas
 		elif "test_set" in split_data.index:
 			split_fnames = set([x[:-len('.csv')] for x in split_data.loc['test_set'].tolist() if not isinstance(x, float) or not math.isnan(x)])
 		else:
-			raise ValueError("This split file does not have the expected format")	
+			raise ValueError("This split file does not have the expected format")
 		idx_to_remove = [i for i, x in enumerate(timeseries_names) if x not in split_fnames]
-		
-		df_indexes_to_delete = [timeseries_names[i] for i in idx_to_remove]
-		window_timeseries = window_timeseries[~window_timeseries.index.str.contains('|'.join(df_indexes_to_delete))]
-		for idx in sorted(idx_to_remove, reverse=True):
-			del timeseries_names[idx]
-			del raw_anomalies[idx]
-			del raw_timeseries[idx]
-			del scores[idx]
 
+		if len(idx_to_remove):
+			df_indexes_to_delete = [timeseries_names[i] for i in idx_to_remove]
+			window_timeseries = window_timeseries[~window_timeseries.index.str.contains('|'.join(df_indexes_to_delete))]
+			for idx in sorted(idx_to_remove, reverse=True):
+				del timeseries_names[idx]
+				del raw_anomalies[idx]
+				del raw_timeseries[idx]
+				del scores[idx]
+	
 	return raw_anomalies, timeseries_names, window_timeseries, scores
 
 
@@ -102,10 +104,11 @@ def load_timeseries(raw_data_path, window_data_path, feature_data_path, selected
 	fnames = []
 	df_list = []
 	for dataset in datasets:
-		print(dataset)
-		curr_x, curr_y, curr_fnames = dataloader.load_raw_dataset(dataset)
-		curr_df = dataloader.load_window_timeseries(dataset) if not features else dataloader.load_feature_timeseries(dataset)
+		curr_x, curr_y, curr_fnames = dataloader.load_raw_dataset_parallel(dataset)
+		curr_df = dataloader.load_window_timeseries_parallel(dataset) if not features else dataloader.load_feature_timeseries(dataset)
 
+		if curr_df is None:
+			continue
 		df_list.append(curr_df)				
 		x.extend(curr_x)
 		y.extend(curr_y)
@@ -118,7 +121,7 @@ def load_timeseries(raw_data_path, window_data_path, feature_data_path, selected
 def load_anomaly_scores(path, fnames):
 	scoreloader = Scoreloader(path)
 
-	scores, idx_failed = scoreloader.load(fnames)
+	scores, idx_failed = scoreloader.load_parallel(fnames)
 
 	return scores, idx_failed
 
@@ -319,15 +322,34 @@ def compute_weighted_scores(window_pred_probabilities, scores, combine_method, k
 
 
 def compute_metrics(labels, scores):
-	
+	metrics_to_keep = ["AUC-ROC", "AUC-PR", "VUS-ROC", "VUS-PR"]
 	all_results = []
 
-	for label, score in zip(labels, scores):
-		precision, recall, _ = metrics.precision_recall_curve(label, score)
-		result = metrics.auc(recall, precision)
-		all_results.append(result)
+	for label, score in tqdm(zip(labels, scores), desc="Computing metrics", leave=False, total=len(labels), disable=True):
+		# Scikit-learn way to compute AUC-PR
+		# precision, recall, _ = metrics.precision_recall_curve(label, score)
+		# result = metrics.auc(recall, precision)
 
-	return np.array(all_results)
+		# tsb-kit way to compute AUC-PR & VUS-PR
+		result = get_metrics(score, label, metric="all", slidingWindow=10)
+		all_results.append({key: result[key.replace('-', '_')] for key in metrics_to_keep})
+
+	# Multi-processor & tsb-kit way to compute AUC-PR & VUS-PR
+	# with Pool() as pool:
+	# 	all_results = list(tqdm(pool.imap(wrapper_get_metrics, zip(scores, labels)), total=len(labels), desc=f"Computing metrics", leave=False))
+
+	return all_results
+
+
+def wrapper_get_metrics(data_tuple):
+	metrics_to_keep = ["AUC-ROC", "AUC-PR", "VUS-ROC", "VUS-PR"]
+
+	score = data_tuple[0]
+	label = data_tuple[1]
+
+	result = get_metrics(score, label, metric="all", slidingWindow=2*10)
+
+	return {key: result[key.replace('-', '_')] for key in metrics_to_keep}
 
 
 def load_json(file_path):
@@ -355,7 +377,7 @@ def load_json(file_path):
 		return None
 
 
-def load_model(model_name, window_size):
+def load_model(model_name, window_size, weights_path, unsupervised_extension=None):
 	"""
 	This function loads a machine learning model based on the specified model name and window size. It supports both deep learning models (e.g., ConvNet, ResNet) and non-deep models (e.g., KNN, ROCKET). It dynamically selects the appropriate loading method based on the model type.
 	
@@ -370,10 +392,10 @@ def load_model(model_name, window_size):
 	classic_models = ['knn', 'rocket']
 
 	if model_name in deep_models:
-		model_selector_dict = get_model_selector_dict(model_name, window_size)
+		model_selector_dict = get_model_selector_dict(model_name, window_size, weights_path, unsupervised_extension)
 		model = load_deep_model(**model_selector_dict)
 	elif model_name in classic_models:
-		model = load_classic_model(path=os.path.join(weights_path, f"{model_name}_{window_size}"))
+		model = load_classic_model(path=os.path.join(weights_path, f"{model_name}_{window_size}_{unsupervised_extension}" if unsupervised_extension else f"{model_name}_{window_size}"))
 	else:
 		raise ValueError(f"Model name \"{model_name}\" not expected")
 	return model
@@ -413,7 +435,6 @@ def load_deep_model(model, model_parameters_file, weights_path, window_size):
 			weights_path = os.path.join(weights_path, files[0])
 		else:
 			raise ValueError("Multiple files found in the 'model_path' directory. Please provide a single file or specify the file directly.")
-
 	if torch.cuda.is_available():
 		model.load_state_dict(torch.load(weights_path))
 		model.eval()
@@ -425,7 +446,7 @@ def load_deep_model(model, model_parameters_file, weights_path, window_size):
 	return model
 
 
-def get_model_selector_dict(model_name, window_size):
+def get_model_selector_dict(model_name, window_size, weights_path, unsupervised_extension=None):
 	"""
 	Return a dictionary containing information for the model selector.
 
@@ -440,19 +461,19 @@ def get_model_selector_dict(model_name, window_size):
 		'convnet': {
 			'model': ConvNet,
 			'model_parameters_file': os.path.join(model_parameters_file, 'convnet_default.json'),
-			'weights_path': os.path.join(weights_path, 'convnet_default_' + str(window_size)),
+			'weights_path': os.path.join(weights_path, f'convnet_default_{window_size}_{unsupervised_extension}' if unsupervised_extension else f'convnet_default_{window_size}'),
 			'window_size': window_size
 		},
 		'resnet': {
 			'model': ResNetBaseline,
 			'model_parameters_file': os.path.join(model_parameters_file, 'resnet_default.json'),
-			'weights_path': os.path.join(weights_path, 'resnet_default_' + str(window_size)),
+			'weights_path': os.path.join(weights_path, f'resnet_default_{window_size}_{unsupervised_extension}' if unsupervised_extension else f'resnet_default_{window_size}'),
 			'window_size': window_size
 		},
 		'sit': {
 			'model': SignalTransformer,
 			'model_parameters_file': os.path.join(model_parameters_file, 'sit_stem_original.json'),
-			'weights_path': os.path.join(weights_path, 'sit_stem_original_' + str(window_size)),
+			'weights_path': os.path.join(weights_path, f'sit_stem_original_{window_size}_{unsupervised_extension}' if unsupervised_extension else f'sit_stem_original_{window_size}'),
 			'window_size': window_size
 		}
 	}

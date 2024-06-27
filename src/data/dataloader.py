@@ -13,6 +13,7 @@ from tqdm import tqdm
 import glob
 import numpy as np
 from multiprocessing import Pool
+# from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 
@@ -80,7 +81,7 @@ class Dataloader:
 		timeseries_files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.out')]
 
 		with Pool() as pool:
-			results = list(tqdm(pool.imap(self.load_timeseries, timeseries_files), total=len(timeseries_files), desc="Loading time series"))
+			results = list(tqdm(pool.imap(self.load_timeseries, timeseries_files), total=len(timeseries_files), desc=f"Loading {dataset}"))
 
 		x, y, fnames = zip(*[result for result in results if result is not None])
 
@@ -148,11 +149,65 @@ class Dataloader:
 			curr_df.index = curr_index
 
 			df_list.append(curr_df)
-				
+		
+		if len(df_list) <= 0:
+			return None
 		df = pd.concat(df_list)
 
 		return df
-	
+
+	def load_window_timeseries_parallel(self, dataset):
+		"""
+		Loads the time series of the given dataset in parallel and returns a dataframe.
+
+		Parameters:
+			dataset (str): Name of the dataset to load.
+
+		Returns:
+			pd.DataFrame: A single dataframe of all loaded time series.
+		"""
+		df_list = []
+
+		# Check if dataset exists
+		if dataset not in self.get_dataset_names():
+			raise ValueError(f"Dataset {dataset} not in dataset list")
+		
+		path = os.path.join(self.window_data_path, dataset)
+		
+		# Load file names
+		timeseries_files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.csv')]
+
+		# Load time series in parallel
+		with Pool() as pool:
+			results = list(tqdm(pool.imap(self.load_timeseries_file, timeseries_files), total=len(timeseries_files), desc="Loading time series"))
+
+		# Filter out any None results
+		df_list = [result for result in results if result is not None]
+
+		if not df_list:
+			return None
+
+		# Concatenate all dataframes
+		df = pd.concat(df_list)
+
+		return df
+
+	def load_timeseries_file(self, filepath):
+		"""
+		Load a single time series file and return it as a DataFrame.
+
+		Parameters:
+			filepath (str): Path to the time series file.
+
+		Returns:
+			pd.DataFrame: The loaded time series data.
+		"""
+		curr_df = pd.read_csv(filepath, index_col=0)
+		curr_index = [os.path.join(os.path.basename(os.path.dirname(filepath)), x) for x in list(curr_df.index)]
+		curr_df.index = curr_index
+
+		return curr_df
+		
 
 	def load_feature_timeseries(self, dataset):
 		# Check if dataset exists
@@ -165,133 +220,11 @@ class Dataloader:
 		return df
 
 
-	# def load_timeseries(self, timeseries):
-	# 	'''
-	# 	Loads specified timeseries
-
-	# 	:param fnames: list of file names
-	# 	:return x: timeseries
-	# 	:return y: corresponding labels
-	# 	:return fnames: list of names of the timeseries loaded
-	# 	'''
-	# 	x = []
-	# 	y = []
-	# 	fnames = []
-
-	# 	for fname in tqdm(timeseries, desc='Loading timeseries'):
-	# 		curr_data = pd.read_csv(os.path.join(self.data_path, fname), header=None).to_numpy()
-			
-	# 		if curr_data.ndim != 2:
-	# 			raise ValueError('did not expect this shape of data: \'{}\', {}'.format(fname, curr_data.shape))
-
-	# 		# Skip files with no anomalies
-	# 		if not np.all(curr_data[0, 1] == curr_data[:, 1]):
-	# 			x.append(curr_data[:, 0])
-	# 			y.append(curr_data[:, 1])
-	# 			fnames.append(fname)
-
-	# 	return x, y, fnames
-
-
-# class Dataloader:
-#     """A class for loading data from a dataset directory."""
-
-#     def __init__(self, dataset_dir):
-#         """
-#         Initialize the Dataloader.
-
-#         Args:
-#             dataset_dir (str): Path to the directory containing the dataset.
-#         """
-#         self.dataset_dir = dataset_dir
-		
-
-#     def load_dataset(self):
-#         """
-#         Load the entire dataset.
-
-#         Returns:
-#             dict: A dictionary containing loaded data.
-#                   Keys are dataset names, and values are DataFrames or other data structures.
-#         """
-#         data = {}
-#         dataset_names = self._get_dataset_names()
-
-#         for dataset_name in dataset_names:
-#             dataset_path = os.path.join(self.dataset_dir, dataset_name)
-#             # Load dataset here
-#             # Example:
-#             # data[dataset_name] = self._load_data(dataset_path)
-
-#         return data
-
-#     def _get_dataset_names(self):
-#         """
-#         Get the names of all datasets in the dataset directory.
-
-#         Returns:
-#             list: A list of dataset names.
-#         """
-#         dataset_names = []
-#         for item in os.listdir(self.dataset_dir):
-#             if os.path.isdir(os.path.join(self.dataset_dir, item)):
-#                 dataset_names.append(item)
-#         return dataset_names
-
-#     def _load_data(self, dataset_path):
-#         """
-#         Load data from a dataset directory.
-
-#         Args:
-#             dataset_path (str): Path to the dataset directory.
-
-#         Returns:
-#             pd.DataFrame: A DataFrame containing the loaded data.
-#         """
-#         # Load data from files in the dataset directory
-#         # Example:
-#         # data = pd.read_csv(os.path.join(dataset_path, 'data.csv'))
-#         # return data
-#         pass
-
-#     def load_timeseries(self, timeseries_list):
-#         """
-#         Load specified time series from the dataset.
-
-#         Args:
-#             timeseries_list (list): List of file paths or names of time series to load.
-
-#         Returns:
-#             dict: A dictionary containing loaded time series data.
-#                   Keys are time series names, and values are DataFrames or other data structures.
-#         """
-#         time_series_data = {}
-
-#         for timeseries_name in tqdm(timeseries_list, desc='Loading time series'):
-#             timeseries_path = os.path.join(self.dataset_dir, timeseries_name)
-#             # Load time series here
-#             # Example:
-#             # time_series_data[timeseries_name] = self._load_timeseries(timeseries_path)
-
-#         return time_series_data
-
-#     def _load_timeseries(self, timeseries_path):
-#         """
-#         Load a single time series from a file.
-
-#         Args:
-#             timeseries_path (str): Path to the file containing the time series data.
-
-#         Returns:
-#             pd.DataFrame: A DataFrame containing the loaded time series data.
-#         """
-#         # Load time series from file
-#         # Example:
-#         # timeseries_data = pd.read_csv(timeseries_path)
-#         # return timeseries_data
-#         pass
-
-
+def load_csv(file_path):
+	curr_df = pd.read_csv(file_path, index_col=0)
+	curr_index = [os.path.join(dataset, x) for x in list(curr_df.index)]
+	curr_df.index = curr_index
+	return curr_df
 
 def main():
 	dataloader = Dataloader(dataset_dir="data", raw_data_path="data/raw")
