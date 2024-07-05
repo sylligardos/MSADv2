@@ -233,7 +233,8 @@ def main(experiment, model_idx):
 			if results:
 				print(f'- dataset_id {selected_dataset_index} completed, time: {end - start} secs')
 
-	elif experiment == "unsupervised":		
+	elif experiment == "unsupervised":
+		print("--- MSAD-E Unsupervised experiments ---")	
 		for split in splits:
 			results = run_unsupervised_experiment(
 				k_values, 
