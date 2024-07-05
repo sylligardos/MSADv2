@@ -30,8 +30,9 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 	feature_data_path = generate_feature_data_path(window_size)
 	dataloader = Dataloader(raw_data_path, window_data_path, feature_data_path)
 	datasets = dataloader.get_dataset_names()
-	metric="AUC-PR"
-	split_file_path = find_file_with_substring(supervised_split_file_path, str(window_size))
+	# split_file_path = find_file_with_substring(supervised_split_file_path, str(window_size))
+	split_file_path = os.path.join(supervised_split_file_path, "split_TSB.csv")
+	
 
 	# SKIP NASA OMG ...
 	if "NASA" in datasets[selected_dataset_index]:
@@ -78,6 +79,12 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 	with Pool() as pool:
 		results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
 
+	# Single processing
+	# results = []
+	# for elem in k_combine_methods:
+	# 	curr_result = partial_process_results(elem)
+	# 	results.append(curr_result)
+
 	return results
 
 
@@ -88,7 +95,6 @@ def run_unsupervised_experiment(k_values, combine_methods, selected_dataset_inde
 	feature_data_path = generate_feature_data_path(window_size)
 	dataloader = Dataloader(raw_data_path, window_data_path, feature_data_path)
 	datasets = dataloader.get_dataset_names()
-	metric="AUC-PR"
 	split_file_path = os.path.join(unsupervised_split_file_path, f"unsupervised_testsize_{testsize}_split_{split}.csv")
 
 	# SKIP NASA OMG ...
@@ -137,14 +143,14 @@ def run_unsupervised_experiment(k_values, combine_methods, selected_dataset_inde
 	)
 
 	# Parallel processing
-	# with Pool() as pool:
-	# 	results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
+	with Pool() as pool:
+		results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
 
 	# Single processing
-	results = []
-	for elem in k_combine_methods:
-		curr_result = partial_process_results(k_combine_methods)
-		results.append(curr_result)
+	# results = []
+	# for elem in k_combine_methods:
+	# 	curr_result = partial_process_results(elem)
+	# 	results.append(curr_result)
 
 
 	return results
