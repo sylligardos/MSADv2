@@ -321,18 +321,18 @@ def compute_weighted_scores(window_pred_probabilities, scores, combine_method, k
 	return np.array(weights), weighted_scores
 
 
-def compute_metrics(labels, scores):
+def compute_metrics(labels, scores, k):
 	metrics_to_keep = ["AUC-ROC", "AUC-PR", "VUS-ROC", "VUS-PR"]
 	all_results = []
 
-	for label, score in tqdm(zip(labels, scores), desc="Computing metrics", leave=False, total=len(labels), disable=True):
+	for label, score in tqdm(zip(labels, scores), desc=f"Computing metrics {k}" if k is not None else "Computing metrics", leave=False, total=len(labels), disable=True):
 		# Scikit-learn way to compute AUC-PR
 		# precision, recall, _ = metrics.precision_recall_curve(label, score)
 		# result = metrics.auc(recall, precision)
 
 		# tsb-kit way to compute AUC-PR & VUS-PR
-		result = get_metrics(score, label, metric="all", slidingWindow=10)
-		all_results.append({key: result[key.replace('-', '_')] for key in metrics_to_keep})
+		result = wrapper_get_metrics((score, label))
+		all_results.append(result)
 
 	# Multi-processor & tsb-kit way to compute AUC-PR & VUS-PR
 	# with Pool() as pool:
@@ -347,7 +347,7 @@ def wrapper_get_metrics(data_tuple):
 	score = data_tuple[0]
 	label = data_tuple[1]
 
-	result = get_metrics(score, label, metric="all", slidingWindow=2*10)
+	result = get_metrics(score, label, metric="all", slidingWindow=10)
 
 	return {key: result[key.replace('-', '_')] for key in metrics_to_keep}
 

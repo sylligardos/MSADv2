@@ -5,7 +5,7 @@ models/*
 *.zip
 config.py
 reports/
-
+shell_scripts/*.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
