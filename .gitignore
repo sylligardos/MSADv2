@@ -1,5 +1,4 @@
 # Project-specific ignores
-reports/first_results*
 data/*
 models/*
 *.zip
