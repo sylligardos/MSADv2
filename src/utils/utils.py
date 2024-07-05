@@ -30,6 +30,7 @@ from pathlib import Path
 import pickle
 import math
 from tsb_kit.vus.metrics import get_metrics
+from multiprocessing import Pool
 
 
 def load_data(raw_data_path, window_data_path, feature_data_path, selected_dataset_index, scores_path, features, split_file=None):
@@ -321,11 +322,10 @@ def compute_weighted_scores(window_pred_probabilities, scores, combine_method, k
 	return np.array(weights), weighted_scores
 
 
-def compute_metrics(labels, scores, k):
-	metrics_to_keep = ["AUC-ROC", "AUC-PR", "VUS-ROC", "VUS-PR"]
+def compute_metrics(labels, scores, k=None):
 	all_results = []
 
-	for label, score in tqdm(zip(labels, scores), desc=f"Computing metrics {k}" if k is not None else "Computing metrics", leave=False, total=len(labels), disable=True):
+	for label, score in tqdm(zip(labels, scores), desc=f"Computing metrics {k}" if k is not None else "Computing metrics", leave=False, total=len(labels)):
 		# Scikit-learn way to compute AUC-PR
 		# precision, recall, _ = metrics.precision_recall_curve(label, score)
 		# result = metrics.auc(recall, precision)
@@ -336,7 +336,7 @@ def compute_metrics(labels, scores, k):
 
 	# Multi-processor & tsb-kit way to compute AUC-PR & VUS-PR
 	# with Pool() as pool:
-	# 	all_results = list(tqdm(pool.imap(wrapper_get_metrics, zip(scores, labels)), total=len(labels), desc=f"Computing metrics", leave=False))
+	# 	all_results = list(tqdm(pool.imap(wrapper_get_metrics, zip(scores, labels)), total=len(labels), desc=f"Computing metrics {k}" if k is not None else "Computing metrics", leave=False))
 
 	return all_results
 
@@ -492,7 +492,7 @@ def load_classic_model(path):
 	Returns:
 	- output: Loaded non-deep learning model.
 	"""
-
+	
 	# If model is not given, load the latest
 	if os.path.isdir(path):
 		models = [x for x in os.listdir(path) if '.pkl' in x]
