@@ -28,7 +28,7 @@ def main():
 #SBATCH --error=logs/%x_errors_%j.log        # Error log
 #SBATCH --ntasks=1               # Number of tasks
 #SBATCH --cpus-per-task=32        # Number of CPU cores per task
-#SBATCH --mem=32G                # Memory per node
+#SBATCH --mem=64G                # Memory per node
 #SBATCH --time=48:00:00          # Time limit hrs:min:sec
 
 # Activate the conda environment

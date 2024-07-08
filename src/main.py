@@ -209,7 +209,7 @@ def main(experiment, model_idx):
 	k_values = np.arange(1, 13)
 	selected_dataset_indexes = np.arange(13, 18)  # Index of the selected dataset
 	combine_methods = ['average', 'vote']
-	splits = np.arange(3, 16)
+	splits = np.arange(4, 16)
 
 	if model_idx >= len(model_selectors):
 			raise ValueError("Model selector index is not within range")
