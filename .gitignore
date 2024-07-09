@@ -1,6 +1,7 @@
 # Project-specific ignores
-data/*
-models/*
+data
+models
+.vscode
 *.zip
 reports/
 shell_scripts/*.sh
