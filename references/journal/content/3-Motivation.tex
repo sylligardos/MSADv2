@@ -1,0 +1,61 @@
+\section{Motivation and Problem}
+\label{sec:problem_def}
+
+In this section, we describe solutions that can be applied to solve the limitations mentioned above, and we motivate the benefits of these solutions. We finally formally define the problem.
+
+\subsection{Ensembling Detectors}
+
+The first solution is to ensemble the anomaly scores produced by all the detectors. Multiple ensembling techniques have been proposed in the literature~\cite{10.1145/2830544.2830549} from which \journalv{three} main methods arise: (i) \textit{Averaging}: the average of the anomaly scores for each timestamp, (ii) \textit{Maximizing}: the maximum anomaly score for each timestamp (iii) \textit{Average of Maximum}: the average of the maximum for a randomly selected subset of detectors. \textit{Averaging} strategy is proven to be the more robust and low-risk strategy compared to the other two~\cite{10.1145/2830544.2830549}. Formally, the \textit{Averaging} strategy is defined as follows:
+
+\begin{definition}
+    Given time series $T$ of length $n$ and a set of detectors $\mathcal{B}$, \textit{Averaging} strategy is defined as $Avg~Ens = [Avg_1,Avg_2, ..., Avg_m]$ with $Avg_i$ (for $i \in [i,m]$) equals to $Avg_i= (1/|\mathcal{B}|)\sum_{D \in \mathcal{B}} D(T)_i$.
+\end{definition}
+
+
+In the rest of the paper, we call the \textit{Averaging} strategy \textit{Averaging Ensemble (Avg Ens)}. As depicted in Figure~\ref{fig:intro_fig} (a), which shows the accuracy of detectors (in grey) and the Averaging Ensemble (in orange), we observe that such a strategy already outperforms all existing approaches. Nonetheless, such a method requires running all detectors to produce one ensembled anomaly score, resulting in a costly execution time (see Figure~\ref{fig:intro_fig} (b)). In a scenario with very long time series and an increasing number of detectors to consider, such an approach is not sustainable and feasible in practice.
+
+\subsection{Model Selection}
+
+A solution to tackle the limitations mentioned above is to apply model selection based on the characteristics of the time series. The main idea is to train a model to automatically select the best detector (anomaly detection method) for a given time series. In such a case, the user only has to run one model, drastically limiting the execution time required. This topic has been tackled in several recent papers related to AutoML (Automatic Machine Learning). Recent approaches, such as MetaOD~\cite{NEURIPS2021_23c89427,https://doi.org/10.48550/arxiv.2009.04395}, explored meta-learning to identify the best outlier detection algorithm on tabular datasets. 
+%Recent studies have also been proposed for the specific case of time series~\cite{https://doi.org/10.48550/arxiv.2009.04395,https://doi.org/10.48550/arxiv.2102.05740}. 
+These research works rely on pre-computed models' performances on a subset of datasets to learn a mapping from the dataset's characteristics to the detectors' performance. Methods have been proposed to select models in an unsupervised way~\cite{https://doi.org/10.48550/arxiv.2210.01078}, but require running multiple models in advance, which (like Averaging Ensemble) limit the applicability due to high cost. \journalv{Overall, existing AutoML solutions require: (i) a universal objective function among models, which is not applicable to anomaly detection methods; (ii) a predefined set of features, which is difficult to obtain for time series due to varying lengths and the lack of standardized featurization solutions; and (iii) running multiple anomaly detection methods several times, which is prohibitively expensive in practice.}
+
+\subsection{Classification for Model Selection}
+
+In general, for the specific case of time series, most of the work described above and future AutoML methods will rely on time series classification methods for the model selection step. In such a case, the method aims to classify time series into classes corresponding to the available anomaly detection methods. One time series must be classified into the detector class that maximizes anomaly detection accuracy. However, no existing guidelines indicate which time series classification approach can be used as model selection. Thus, there is a need to evaluate and measure the benefit that time series classification approaches can bring to the anomaly detection task.
+
+The first step is to evaluate the potential gain in accuracy that model selection could bring. To do this, recent time series anomaly benchmarks~\cite{10.14778/3529337.3529354,10.14778/3538598.3538602} can be used. We can evaluate the accuracy upper bound that model selection methods reach on such benchmarks. Thus, we define a hypothetical model called $Oracle$, which, for a given time series, always selects the correct anomaly detector to use (i.e., the most accurate). Formally, $Oracle$ is defined as follows:
+
+\begin{definition}
+Given a dataset $\mathcal{D}$ composed of time series $T$ and labels $L$ (with the length of the time series $|T|=n$ non-constant for all time series in $\mathcal{D}$), and a set of detectors $\mathcal{B} = \{D_1, D_i, ..., D_m\}$ with the number of detectors defined as $|\mathcal{B}|=m$, $Oracle(T)= \operatorname*{argmax}_{D \in \mathcal{B}} \big\{Acc\big(D(T),L\big)\big\}$ 
+\end{definition}
+
+In the rest of the paper, we call $Oracle$, the hypothetical model $Oracle(T)$ applied to all $T$ in a given benchmark. For example, figure~\ref{fig:intro_fig} shows in white the accuracy of $Oracle$ applied to the TSB-UAD benchmark~\cite{10.14778/3529337.3529354} and demonstrates that a perfect model selection method outperforms the best detector in TSB-UAD and the Averaging Ensemble by a factor of 2.5. This large improvement in accuracy and execution time confirms the potential benefits of model selection applied for time series anomaly detection. Thus, there is a need to evaluate the performances of existing time series classification methods when used as model selection algorithms and how close such methods can get to the $Oracle$.
+
+\subsection{Problem Formulation}
+
+Therefore, based on the limitations and the motivation listed above, we can formalize the problem of model selection as follows:
+
+\begin{problem}
+    \label{prob:probdef}
+    Given a dataset $\mathcal{D}$ composed of time series $T$ (with the length of the time series $|T|=n$ non-constant for all time series in $\mathcal{D}$) and a set of detectors $\mathcal{B} = \{D_1, D_2, ..., D_m\}$ with the number of detectors defined as $|\mathcal{B}|=m$, we want to build a model selection method $\mathcal{M}$ that takes a time series $T\in \mathcal{D}$ and returns a detector $D\in \mathcal{B}$ (formally $\mathcal{M}: \mathcal{D} \rightarrow \mathcal{B}$) such that, for a given time series $T$ and corresponding label $L$:
+    \begin{align*}
+        \mathcal{M}(T) = Oracle(T)= \operatorname*{argmax}_{D \in \mathcal{B}} \bigg\{Acc\big(D(T),L\big)\bigg\}
+    \end{align*}
+\end{problem}
+\journalv{In practice, we do not have the label $L$. Therefore, the objective is to build a model $\mathcal{M}$ that estimate the equation above.}
+
+Moreover, as the input of the model $\mathcal{M}$ is a time series (of variable length) and the output is a detector $D$ among a finite number of detectors $\mathcal{B}$, the problem can be seen as a time series classification problem for which the classes are the detectors in $\mathcal{B}$. Therefore, the only requirement is to have computed all $Acc(D(T),L)$ for all $T\in \mathcal{D}$ and all $D\in \mathcal{B}$ and use it as a training set.
+
+\subsection{Objectives}
+\label{sec:objective}
+
+In summary, our goal is to answer the following questions:
+\begin{itemize}%[noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt, leftmargin=0.3cm]
+	\item \textbf{Classification as Model selection}: How do classification methods compare to individual detectors and the $Oracle$?
+	\item \textbf{Ensembling or selecting}: Is selecting detectors automatically more accurate than ensembling them?
+	\item \textbf{Features or Raw values}: Should we use time series features or the raw time series values to predict which detector to use?
+	\item \textbf{Out-Of-Distribution}: What happens when the model selection approach is trained on some datasets and tested on entirely new datasets? Are all the answers from the previous questions valid? 
+\end{itemize}
+
+\noindent We now describe our pipeline and experimental evaluation to answer the questions listed above. 

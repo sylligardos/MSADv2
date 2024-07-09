@@ -1,0 +1,303 @@
+%%%%%%%%%%%%%%%%%%%%%%% file template.tex %%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is a general template file for the LaTeX package SVJour3
+% for Springer journals.          Springer Heidelberg 2010/09/16
+%
+% Copy it to a new file with a new name and use it as the basis
+% for your article. Delete % signs as needed.
+%
+% This template includes a few options for different layouts and
+% content for various journals. Please consult a previous issue of
+% your journal as needed.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% First comes an example EPS file -- just ignore it and
+% proceed on the \documentclass line
+% your LaTeX will extract the file if required
+\begin{filecontents*}{example.eps}
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 19 19 221 221
+%%CreationDate: Mon Sep 29 1997
+%%Creator: programmed by hand (JK)
+%%EndComments
+gsave
+newpath
+  20 20 moveto
+  20 220 lineto
+  220 220 lineto
+  220 20 lineto
+closepath
+2 setlinewidth
+gsave
+  .4 setgray fill
+grestore
+stroke
+grestore
+\end{filecontents*}
+%
+\RequirePackage{fix-cm}
+%
+%\documentclass{svjour3}                     % onecolumn (standard format)
+%\documentclass[smallcondensed]{svjour3}     % onecolumn (ditto)
+%\documentclass[smallextended]{svjour3}       % onecolumn (second format)
+\documentclass[twocolumn]{svjour3}          % twocolumn
+%
+\smartqed  % flush right qed marks, e.g. at end of proof
+%
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{xcolor}             % Sylli,
+\usepackage{amsmath,amsfonts}   % Sylli,
+\usepackage{amssymb}            % Sylli,
+\usepackage{dsfont}             % Sylli,
+\usepackage{microtype}          % Sylli,
+\usepackage{array}              % Sylli,
+\usepackage{enumitem}           % Sylli, to add parameters to the list
+\usepackage{makecell}           % Sylli, for the table
+\usepackage{colortbl}           % Sylli, for the colors of the table
+
+% Sylli, defined custom colors for the table
+\definecolor{Gray}{gray}{0.8}
+\definecolor{lGray}{gray}{0.9}
+\definecolor{featurebased}{rgb}{0.57, 0.66, 0.77}
+\definecolor{rocket}{rgb}{0.78,0.15,0.95}
+\definecolor{convbased}{rgb}{0.34, 0.59, 0.97}
+\definecolor{transbased}{rgb}{0.95,0.71, 0.28}
+
+% \usepackage{mathptmx}      % use Times fonts if available on your TeX system
+%
+% insert here the call for the packages your document requires
+%\usepackage{latexsym}
+% etc.
+%
+% please place your own definitions here and don't use \def but
+% \newcommand{}{}
+\newcommand{\journalv}[1]{{\color{red} #1}\normalcolor} % Sylli, for the journal version
+%
+% Insert the name of "your journal" with
+% \journalname{myjournal}
+%
+\begin{document}
+
+\title{MSAD: A Deep Dive into Model Selection for Time series Anomaly Detection
+%\thanks{Grants or other notes about the article that should go on the front page should be placed here. General acknowledgments should be placed at the end of the article.}
+}
+% \subtitle{Extending Model Selection for Anomaly Detection (MSAD-E) in Time Series with Weighted Averages}
+
+\titlerunning{MSAD-E}        % if too long for running head
+
+\author{
+Emmanouil Sylligardos \and
+John Paparrizos \and
+Themis Palpanas \and
+Pierre Senellart \and
+Paul Boniol
+}
+
+% \authorrunning{Short form of author list} % if too long for running head
+
+\institute{
+    E. Sylligardos \at
+    École Normale Supérieure, Paris, France \\
+    % Tel.: +123-45-678910\\
+    % Fax: +123-45-678910\\
+    \email{emmanouil.sylligardos@ens.fr}           %  \\
+    % \emph{Present address:} of F. Author  %  if needed
+    % \and
+    % J. Paparrizos \at
+    % \email{test@gmail.com}
+    % \and
+    % T. Palpanas \at
+    % \email{themis@mi.parisdescartes.fr}
+    % \and
+    % P. Senellart \at
+    % \email{test@gmail.com}
+    % \and
+    % P. Boniol \at
+    % \email{paul.boniol@inria.fr}
+}
+
+\date{Received: date / Accepted: date}
+% The correct dates will be entered by the editor
+
+
+\maketitle
+
+\begin{abstract}
+Time series have seen a rapidly growing interest throughout the last two decades. The research community has thus been focusing on providing tools in multiple domains of time series analysis. The main domains are a) clustering, b) pattern recognition, c) anomaly detection, etc. In anomaly detection, multiple algorithms have been proposed, however research and benchmarks point out that none of the proposed anomaly detectors can succeed in all the different fields where time series are used (medicine, industry, etc.). To this end, model selection approaches have been proposed that combine the multiple anomaly detectors to achieve greater, inter-domain results. In this work, we will build on top of MSAD, a model selection framework for anomaly detection in time series. MSAD was proposed so that it reads a time series and simply predicts a single detector to use on this time series. We will provide MSAD the ability to predict multiple detectors, each one of them with a different weight, and then combine these detectors according to the aforesaid weights. We hope that this approach, namely MSAD-E, provides even better results and anomaly detection power than before.
+\keywords{Time Series \and Anomaly Detection \and Model Selection \and Machine Learning}
+% \PACS{PACS code1 \and PACS code2 \and more}
+% \subclass{MSC code1 \and MSC code2 \and more}
+\end{abstract}
+
+
+% ------ Content ------
+
+\input{content/1-Introduction}
+\input{content/2-Background}
+\input{content/3-Motivation}
+\input{content/4-Pipeline}
+\input{content/5-Experiments}
+\input{content/6-Conclusion}
+
+
+% Everything here is commented and used only for reference. Find content in 'content'
+% % ------ Input ------
+
+% \section{Introduction}
+% \label{intro}
+% Your text comes here. Separate text sections with
+
+
+% % ------ Related work ------
+
+% \section{Related work}
+% \label{sec:1}
+% Text with citations \cite{RefB} and \cite{RefJ}.
+% \subsection{Subsection title}
+% \label{sec:2}
+% as required. Don't forget to give each section
+% and subsection a unique label (see Sect.~\ref{sec:1}).
+% \paragraph{Paragraph headings} Use paragraph headings as needed.
+% \begin{equation}
+% a^2+b^2=c^2
+% \end{equation}
+
+% % For one-column wide figures use
+% \begin{figure}
+% % Use the relevant command to insert your figure file.
+% % For example, with the graphicx package use
+%   \includegraphics{example.eps}
+% % figure caption is below the figure
+% \caption{Please write your figure caption here}
+% \label{fig:1}       % Give a unique label
+% \end{figure}
+
+
+% % ------ Methodology ------
+
+% \section{Methodology}
+
+% In this section, we will provide an intuitive and detailed explanation of MSAD-E. We will start with a description of the general pipeline, and then we will move to introducing the individual components from start to end.
+
+% \subsection{Methodology}
+
+% There is certain terminology that should be discussed prior to the pipeline. Firstly, a Model Selector (MS) is a time series classifier, e.g. a k-Nearest Neighbors (kNN) classifier, a Convolutional Neural Network (CNN), etc. Then, we have anomaly detectors (or detectors for short) which are (as the name suggests) the models for performing anomaly detection in time series. 
+
+% Initially, time series are segmented into windows and fed to a trained MS. The MS outputs detector probabilities for each time series. Usually, while doing classification, we would do an argmax operation over these probabilities and select one detector as the prediction of the classifier. However, in our work, we use multiple predictions. So, after having the probabilities, we run multiple detectors over the time series and multiply by their predicted probabilities to get the weighted average ensemble. The produced anomaly score is a weighted combination of multiple anomaly scores. 
+
+% \subsection{Analysis on averaging the top k detectors}
+% In this subsection, we will dive deeper into the results of weighted averaging the top predictions of an MS. We will compare the different detectors and the different methods to get the results. We will compare weighted averaging with our previous approach, that is, predicting and using a single detector. Finally, we will evaluate whether the result is worth the overhead. The following subsection is organized into questions that we will pose, and we will answer in our effort to provide as much insight as possible from our findings.
+
+% However, before we jump into the results, we will explain the setting of our experiment. From our previous work we select our best MS, namely \textbf{ConvNet-128}, \textbf{ResNet-1024}, \textbf{SiT-512}, and \textbf{kNN-1024} (the first part of each name refers to the architecture and the second part to the size of the input). The Rocket MS were not included into the analysis since the showcased very unstable behavior. These MS will be compared subsequently.
+
+% Additionally, for each MS, there are two different methods for combining the probabilities between the windows of a time series. These methods are a) \textbf{Vote}, b) \textbf{Average}, and they will also be compared following. 
+
+% Last but not least, our experiments exhibit, time series from around 16 different datasets to provide both robust results. Also, the number of Anomaly Detectors combined ranges from k = 1 (the case of using a single detector, not averaging), to k = 12 (the case of weighted averaging all detectors).
+
+% \subsubsection{Is weighted averaging better, in terms of accuracy, than predicting and using a single anomaly detector?}
+% Quick answer, yes... although things are rarely so simple. Our results show that overall there is an increase in AUC-PR when combining detectors. More precisely, combining 2 detectors (k = 2), already provides an increase of around 3-5\% which plateaus after 4 or 5 steps for k. This means that we don't have to combine all available detectors to get the best possible results. More precisely:
+
+% \begin{table*}[t]
+% \caption{AUC-PR Percentage Change for Different Models, Combine Methods, and k Values}
+% \label{tab:AUC-PR-Percentage-Change}
+% \begin{tabular}{llllllllllllll}
+% \hline\noalign{\smallskip}
+% Model Selector & Combine Method & \multicolumn{12}{c}{k} \\
+% \cline{3-14} 
+%  &  & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 \\
+% \noalign{\smallskip}\hline\noalign{\smallskip}
+% \multirow{2}{*}{convnet128} & average & (0.48, 0.0) & (0.5, 5.19) & (0.51, 7.14) & \textbf{(0.52, 7.95)} & (0.52, 7.92) & (0.52, 7.76) & (0.51, 7.2) & (0.51, 6.65) & (0.51, 6.62) & (0.51, 6.65) & (0.51, 6.6) & (0.51, 6.59) \\
+%  & vote & (0.48, 0.0) & (0.5, 5.5) & (0.51, 7.0) & (0.51, 7.78) & \textbf{(0.51, 8.14)} & (0.51, 8.12) & (0.51, 7.99) & (0.51, 8.0) & (0.51, 7.96) & (0.51, 7.98) & (0.51, 7.99) & (0.51, 7.98) \\
+% \multirow{2}{*}{knn1024} & average & (0.34, 0.0) & (0.37, 8.51) & (0.38, 11.94) & (0.39, 13.7) & (0.4, 17.12) & (0.4, 18.63) & (0.41, 19.96) & (0.41, 20.6) & \textbf{(0.41, 20.61)} & (0.41, 20.54) & (0.41, 20.53) & (0.41, 20.54) \\
+%  & vote & (0.35, 0.0) & (0.39, 10.49) & (0.39, 12.24) & (0.4, 12.9) & (0.4, 13.46) & (0.4, 13.56) & (0.4, 13.53) & \textbf{(0.4, 13.59)} & (0.4, 13.56) & (0.4, 13.56) & (0.4, 13.55) & (0.4, 13.55) \\
+% \multirow{2}{*}{resnet1024} & average & (0.48, 0.0) & (0.49, 2.85) & (0.49, 3.36) & (0.5, 4.7) & (0.5, 5.49) & (0.5, 5.3) & (0.5, 5.42) & (0.5, 5.33) & \textbf{(0.5, 5.74)} & (0.5, 5.5) & (0.5, 5.72) & (0.5, 5.71) \\
+%  & vote & (0.47, 0.0) & (0.48, 2.94) & (0.49, 3.93) & \textbf{(0.49, 4.07)} & (0.49, 4.0) & \textbf{(0.49, 4.07)} & (0.49, 4.05) & (0.49, 4.05) & (0.49, 4.05) & (0.49, 4.05) & (0.49, 4.05) & (0.49, 4.05) \\
+% \multirow{2}{*}{sit512} & average & (0.48, 0.0) & (0.5, 3.21) & (0.5, 3.32) & (0.51, 5.09) & \textbf{(0.51, 5.44)} & (0.51, 5.08) & (0.51, 4.56) & (0.51, 4.49) & (0.51, 4.49) & (0.51, 4.46) & (0.51, 4.52) & (0.51, 4.52) \\
+%  & vote & (0.48, 0.0) & (0.5, 3.1) & (0.5, 4.78) & (0.51, 5.52) & \textbf{(0.51, 5.77)} & (0.51, 5.73) & (0.51, 5.7) & (0.51, 5.71) & (0.51, 5.69) & (0.51, 5.69) & (0.51, 5.69) & (0.51, 5.69) \\
+% \hline
+% \end{tabular}
+% \end{table*}
+
+
+
+
+
+
+% \subsubsection{For which time series does it work better and why?}
+
+
+% \subsubsection{Does any MS outperform the others? If yes, how?}
+
+
+% \subsubsection{Which windows' probabilities combination method is better 'vote' or 'average'?}
+
+
+% \subsubsection{Is there a plateau at some k or not? Is the behavior the same a) per time series, b) per dataset, and c) globally?}
+
+
+% \subsubsection{What's the improvement to overhead trade-off? Do you think it is worth it, and in which cases?}
+
+
+% \subsection{Analysis on combining anomaly detectors in general}
+
+
+
+
+% %
+% % For two-column wide figures use
+% \begin{figure*}
+% % Use the relevant command to insert your figure file.
+% % For example, with the graphicx package use
+%   \includegraphics[width=0.75\textwidth]{example.eps}
+% % figure caption is below the figure
+% \caption{Please write your figure caption here}
+% \label{fig:2}       % Give a unique label
+% \end{figure*}
+% %
+% % For tables use
+% \begin{table}
+% % table caption is above the table
+% \caption{Please write your table caption here}
+% \label{tab:1}       % Give a unique label
+% % For LaTeX tables use
+% \begin{tabular}{lll}
+% \hline\noalign{\smallskip}
+% first & second & third  \\
+% \noalign{\smallskip}\hline\noalign{\smallskip}
+% number & number & number \\
+% number & number & number \\
+% \noalign{\smallskip}\hline
+% \end{tabular}
+% \end{table}
+
+
+% \begin{acknowledgements}
+% I would like to thank my mother and my father that support me in this great journey of my academic pursuits.
+% \end{acknowledgements}
+
+% BibTeX users please use one of
+% \bibliographystyle{spbasic}      % basic style, author-year citations
+\bibliographystyle{spmpsci}      % mathematics and physical sciences
+% \bibliographystyle{spphys}       % APS-like style for physics
+\bibliography{aaai22.bib}   % name your BibTeX data base
+
+% Non-BibTeX users please use
+% \begin{thebibliography}{}
+% %
+% % and use \bibitem to create references. Consult the Instructions
+% % for authors for reference list style.
+% %
+% \bibitem{RefJ}
+% % Format for Journal Reference
+% Author, Article title, Journal, Volume, page numbers (year)
+% % Format for books
+% \bibitem{RefB}
+% Author, Book title, page numbers. Publisher, place (year)
+% % etc
+% \end{thebibliography}
+
+\end{document}
+% end of file template.tex
+
