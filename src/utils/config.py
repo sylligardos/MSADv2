@@ -6,23 +6,14 @@
 """
 
 
-
-"""
---> !!IMPORTANT NOTE!! <--
-
-This configuration file should NOT be used. We recommend using yours config.py
-file and this file right here serves only as an example. Enjoy!
-"""
-
-
-
 import os
 
+
 # Data
-data_dir = "data"
+data_dir = os.path.join("data")
 
 raw_data_path = os.path.join(data_dir, "raw")
-features_data_path = os.path.join(data_dir, "features")
+feature_data_path = os.path.join(data_dir, "features")
 
 def generate_window_data_path(window_size):
     if window_size not in [16, 32, 64, 128, 256, 512, 768, 1024]:
@@ -32,5 +23,12 @@ def generate_window_data_path(window_size):
 scores_path = os.path.join(data_dir, "scores")
 
 # Models
+weights_path = os.path.join("models")
+supervised_weights_path = os.path.join(weights_path, "supervised")
+unsupervised_weights_path = os.path.join(weights_path, "unsupervised")
 model_parameters_file = os.path.join("src", "models", "configuration")
-weights_path = "models"
+
+# Splits
+split_file_path = os.path.join(data_dir, "splits")
+supervised_split_file_path = os.path.join(split_file_path, "supervised")
+unsupervised_split_file_path = os.path.join(split_file_path, "unsupervised")

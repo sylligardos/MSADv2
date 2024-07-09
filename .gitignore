@@ -2,7 +2,6 @@
 data/*
 models/*
 *.zip
-config.py
 reports/
 shell_scripts/*.sh
 
