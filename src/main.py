@@ -23,6 +23,52 @@ from utils.utils import \
 from data.dataloader import Dataloader
 
 
+
+def process_results(
+	k_combine_method, 
+	window_pred_probabilities, 
+	scores, 
+	raw_anomalies, 
+	timeseries_names, 
+	saving_dir, 
+	model_name, 
+	window_size, 
+	testsize=None, 
+	split=None,
+	dataset=None
+):
+	# Unpack args
+	k, combine_method = k_combine_method
+
+	# Given the window prob. distr. compute weights and weighted score
+	weights, weighted_scores = compute_weighted_scores(window_pred_probabilities, scores, combine_method, k)
+	
+	# Compute the metric value of the combined anomaly score
+	metric_results = compute_metrics(raw_anomalies, weighted_scores, k)
+
+	# Create dataframes with results
+	weights_df = pd.DataFrame(weights, timeseries_names, columns=[f"weight_{x}" for x in detector_names])
+	metric_results_df = pd.DataFrame(metric_results, timeseries_names)
+	results_df = pd.concat([metric_results_df, weights_df], axis=1)
+		
+	# Decide filename based on experiment type
+	if (testsize is not None and split is not None) and dataset is None:
+		filename = f"testsize_{testsize}_split_{split}_{model_name}{window_size}_{combine_method}_k{k}.csv"
+	elif dataset is not None and (testsize is None and split is None):
+		filename = f"{dataset}_{model_name}{window_size}_{combine_method}_k{k}.csv"
+	else:
+		raise ValueError(f"Illegal case detected, please check {testsize} {split} {dataset}")
+
+	# Save the results in a csv
+	# results_df.to_csv(os.path.join(saving_dir, filename))
+	
+	return {
+		"combine_method": combine_method,
+		"k": k,
+		"average_value": np.mean(metric_results_df['AUC-PR'].values),
+	}
+
+
 def run_experiment(k_values, combine_methods, selected_dataset_index, model_name, window_size, saving_dir):
 	# Variables and setup
 	results = []
@@ -76,14 +122,14 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 	)
 
 	# Parallel processing
-	with Pool() as pool:
-		results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
+	# with Pool() as pool:
+	# 	results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
 
 	# Single processing
-	# results = []
-	# for elem in k_combine_methods:
-	# 	curr_result = partial_process_results(elem)
-	# 	results.append(curr_result)
+	results = []
+	for elem in k_combine_methods:
+		curr_result = partial_process_results(elem)
+		results.append(curr_result)
 
 	return results
 
@@ -156,58 +202,12 @@ def run_unsupervised_experiment(k_values, combine_methods, selected_dataset_inde
 	return results
 
 
-def process_results(
-	k_combine_method, 
-	window_pred_probabilities, 
-	scores, 
-	raw_anomalies, 
-	timeseries_names, 
-	saving_dir, 
-	model_name, 
-	window_size, 
-	testsize=None, 
-	split=None,
-	dataset=None
-):
-	# Unpack args
-	k, combine_method = k_combine_method
-	
-	# Given the window prob. distr. compute weights and weighted score
-	weights, weighted_scores = compute_weighted_scores(window_pred_probabilities, scores, combine_method, k)
-	
-	# Compute the metric value of the combined anomaly score
-	metric_results = compute_metrics(raw_anomalies, weighted_scores, k)
-
-	# Create dataframes with results
-	weights_df = pd.DataFrame(weights, timeseries_names, columns=[f"weight_{x}" for x in detector_names])
-	metric_results_df = pd.DataFrame(metric_results, timeseries_names)
-	results_df = pd.concat([metric_results_df, weights_df], axis=1)
-		
-	# Decide filename based on experiment type
-	if (testsize is not None and split is not None) and dataset is None:
-		filename = f"testsize_{testsize}_split_{split}_{model_name}{window_size}_{combine_method}_k{k}.csv"
-	elif dataset is not None and (testsize is None and split is None):
-		filename = f"{dataset}_{model_name}{window_size}_{combine_method}_k{k}.csv"
-	else:
-		raise ValueError(f"Illegal case detected, please check {testsize} {split} {dataset}")
-
-	# Save the results in a csv
-	results_df.to_csv(os.path.join(saving_dir, filename))
-	
-	return {
-		"combine_method": combine_method,
-		"k": k,
-		"average_value": np.mean(metric_results_df['AUC-PR'].values),
-	}
-
-
-
 def main(experiment, model_idx):
 	# Setup variables
 	saving_dir = os.path.join("reports", "results_06_2024_2")
 	model_selectors = [("convnet", 128), ("resnet", 1024), ("sit", 512), ("knn", 1024)] 	# ("rocket", 128) is off for now
 	k_values = np.arange(1, 13)
-	selected_dataset_indexes = np.arange(13, 18)  # Index of the selected dataset
+	selected_dataset_indexes = np.arange(0, 4)  # Index of the selected dataset
 	combine_methods = ['average', 'vote']
 	splits = np.arange(4, 16)
 

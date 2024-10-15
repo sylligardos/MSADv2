@@ -13,6 +13,7 @@ from models.model.resnet import ResNetBaseline
 from models.model.sit import SignalTransformer
 from utils.config import model_parameters_file, supervised_weights_path, feature_data_path, data_dir
 
+from torchinfo import summary
 import numpy as np
 import pandas as pd
 import os
@@ -181,6 +182,7 @@ def predict_deep(model, df, fnames):
 		# Df to tensor
 		x = df.filter(like=fname, axis=0)
 		data_tensor = torch.tensor(x.values, dtype=torch.float32).unsqueeze(1).to(device)
+		
 		with torch.no_grad():
 			curr_prediction = model(data_tensor)
 			curr_prediction = tensor_softmax(curr_prediction)
@@ -243,7 +245,7 @@ def combine_probabilities_vote(pred_probabilities, k):
 		# Perform argmax operation along axis 0 to count the votes
 		votes = np.argmax(probabilities, axis=1)
 		vote_counts = np.bincount(votes, minlength=num_classes)
-		
+		print(vote_counts)
 		# Create a probability distribution based on the votes
 		vote_probabilities = vote_counts / np.sum(vote_counts)
 	
@@ -257,6 +259,11 @@ def combine_probabilities_vote(pred_probabilities, k):
 		# Normalize probabilities so that they sum to 1
 		vote_probabilities_filtered = vote_probabilities_filtered/sum(vote_probabilities_filtered)
 
+		# # This is the same and faster just saying ;)
+		# bottom_indices = np.argsort(vote_counts)[:k]
+		# vote_counts[bottom_indices] = 0
+		# all_vote_probabilities.append(vote_counts/sum(vote_counts))
+		
 		all_vote_probabilities.append(vote_probabilities_filtered)
 
 	return all_vote_probabilities
