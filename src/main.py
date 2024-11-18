@@ -74,13 +74,11 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 	results = []
 	window_data_path = generate_window_data_path(window_size)
 	feature_data_path = generate_feature_data_path(window_size)
-	dataloader = Dataloader(raw_data_path, window_data_path, feature_data_path)
-	datasets = dataloader.get_dataset_names()
-	# split_file_path = find_file_with_substring(supervised_split_file_path, str(window_size))
 	split_file_path = os.path.join(supervised_split_file_path, "split_TSB.csv")
 	
-
-	# SKIP NASA OMG ...
+	# Skip NASA dataset
+	dataloader = Dataloader(raw_data_path, window_data_path, feature_data_path)
+	datasets = dataloader.get_dataset_names()
 	if "NASA" in datasets[selected_dataset_index]:
 		print( f"Skipping {datasets[selected_dataset_index]}")
 		return None
@@ -121,15 +119,9 @@ def run_experiment(k_values, combine_methods, selected_dataset_index, model_name
 		dataset=datasets[selected_dataset_index],
 	)
 
-	# Parallel processing
-	# with Pool() as pool:
-	# 	results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
-
-	# Single processing
-	results = []
-	for elem in k_combine_methods:
-		curr_result = partial_process_results(elem)
-		results.append(curr_result)
+	# Run parallel processing
+	with Pool(1) as pool:
+		results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
 
 	return results
 
@@ -189,27 +181,20 @@ def run_unsupervised_experiment(k_values, combine_methods, selected_dataset_inde
 	)
 
 	# Parallel processing
-	with Pool() as pool:
+	with Pool(1) as pool:
 		results = list(tqdm(pool.imap(partial_process_results, k_combine_methods), total=len(k_combine_methods), desc=f"Processing results", leave=False))
-
-	# Single processing
-	# results = []
-	# for elem in k_combine_methods:
-	# 	curr_result = partial_process_results(elem)
-	# 	results.append(curr_result)
-
 
 	return results
 
 
 def main(experiment, model_idx):
 	# Setup variables
-	saving_dir = os.path.join("reports", "results_06_2024_2")
+	saving_dir = os.path.join("reports", "results_10_2024_temporal")
 	model_selectors = [("convnet", 128), ("resnet", 1024), ("sit", 512), ("knn", 1024)] 	# ("rocket", 128) is off for now
 	k_values = np.arange(1, 13)
-	selected_dataset_indexes = np.arange(0, 4)  # Index of the selected dataset
+	selected_dataset_indexes = np.arange(1, 2)
 	combine_methods = ['average', 'vote']
-	splits = np.arange(4, 16)
+	splits = np.arange(0, 16)
 
 	if model_idx >= len(model_selectors):
 			raise ValueError("Model selector index is not within range")

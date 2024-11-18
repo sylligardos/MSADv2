@@ -245,7 +245,7 @@ def combine_probabilities_vote(pred_probabilities, k):
 		# Perform argmax operation along axis 0 to count the votes
 		votes = np.argmax(probabilities, axis=1)
 		vote_counts = np.bincount(votes, minlength=num_classes)
-		print(vote_counts)
+
 		# Create a probability distribution based on the votes
 		vote_probabilities = vote_counts / np.sum(vote_counts)
 	
