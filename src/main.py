@@ -263,7 +263,10 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
-	main(args.experiment, args.model_idx)
+	main(
+		experiment = args.experiment, 
+		model_idx = args.model_idx,
+	)
 
 
 """ 

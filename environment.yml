@@ -1,4 +1,4 @@
-name: MSAD-E
+name: msade
 channels:
   - defaults
 dependencies:
