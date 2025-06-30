@@ -52,8 +52,11 @@ def compute_auc_multiple(args):
     n_detectors, y, scores = args
 
     compute_metrics_with_y = partial(compute_metrics, y)
-    result = np.apply_along_axis(func1d=compute_metrics_with_y, axis=0, arr=scores)
-    return result
+    return np.apply_along_axis(func1d=compute_metrics_with_y, axis=0, arr=scores)
+    
+
+def compute_scores_correlation(scores):
+    return np.corrcoef(scores.T)
 
 def compute_matrix_for_dataset(args):
     n_detectors, y, scores = args
@@ -104,20 +107,25 @@ def compute_matrix_and_save_results(experiment_dir, experiment_type):
                 matrices = list(tqdm(pool.imap(compute_auc_multiple, args_list), total=n_timeseries, desc="Computing auc"))
             elif experiment_type == 'combination':
                 matrices = list(tqdm(pool.imap(compute_matrix_for_dataset, args_list), total=n_timeseries, desc="Computing matrix"))
+            elif experiment_type == 'scores_corr':
+                scores_t = [x.T for x in scores]
+                matrices = list(tqdm(pool.imap(np.corrcoef, scores_t), total=n_timeseries, desc="Computing scores correlation"))
             else:
                 raise ValueError(f"Unknown experiment type: {experiment_type}")
-        matrix = np.stack(matrices)
+        matrices = [x for x in matrices if not np.isnan(x).any()]
+        matrix = np.stack(matrices).mean(axis=0)
 
         # Save results to CSV
         if experiment_type == 'correlation':
             df = pd.DataFrame(matrix, index=fnames, columns=detectors)
-            csv_filename = f"auc_{dataset}.csv"
-        elif experiment_type == 'combination':
+        elif experiment_type == 'combination' :
             df = matrix_to_dataframe(matrix, fnames, detectors)
-            csv_filename = f"matrix_{dataset}.csv"
+        elif experiment_type == 'scores_corr':
+            df = pd.DataFrame(matrix, index=detectors, columns=detectors)
+        csv_filename = f"{dataset}.csv"
         save_path = os.path.join('experiments', experiment_dir)
         os.makedirs(save_path, exist_ok=True)
-        df.to_csv(os.path.join(save_path, csv_filename), index=(experiment_type == 'correlation'))
+        df.to_csv(os.path.join(save_path, csv_filename))
         print(f"Results saved to '{csv_filename}'.")
 
 
