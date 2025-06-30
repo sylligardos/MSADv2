@@ -5,6 +5,7 @@ models
 *.zip
 reports/
 shell_scripts/*.sh
+experiments/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
