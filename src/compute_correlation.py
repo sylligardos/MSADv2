@@ -1,3 +1,10 @@
+"""
+@who: Emmanouil Sylligardos
+@where: Ecole Normale Superieur (ENS), Paris, France
+@when: PhD Candidate, 1st year (2024)
+@what: MSAD-E
+"""
+
 import pandas as pd
 import numpy as np
 import os

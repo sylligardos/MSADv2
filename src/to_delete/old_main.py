@@ -24,51 +24,6 @@ from data.dataloader import Dataloader
 
 
 
-def process_results(
-	k_combine_method, 
-	window_pred_probabilities, 
-	scores, 
-	raw_anomalies, 
-	timeseries_names, 
-	saving_dir, 
-	model_name, 
-	window_size, 
-	testsize=None, 
-	split=None,
-	dataset=None
-):
-	# Unpack args
-	k, combine_method = k_combine_method
-
-	# Given the window prob. distr. compute weights and weighted score
-	weights, weighted_scores = compute_weighted_scores(window_pred_probabilities, scores, combine_method, k)
-	
-	# Compute the metric value of the combined anomaly score
-	metric_results = compute_metrics(raw_anomalies, weighted_scores, k)
-
-	# Create dataframes with results
-	weights_df = pd.DataFrame(weights, timeseries_names, columns=[f"weight_{x}" for x in detector_names])
-	metric_results_df = pd.DataFrame(metric_results, timeseries_names)
-	results_df = pd.concat([metric_results_df, weights_df], axis=1)
-		
-	# Decide filename based on experiment type
-	if (testsize is not None and split is not None) and dataset is None:
-		filename = f"testsize_{testsize}_split_{split}_{model_name}{window_size}_{combine_method}_k{k}.csv"
-	elif dataset is not None and (testsize is None and split is None):
-		filename = f"{dataset}_{model_name}{window_size}_{combine_method}_k{k}.csv"
-	else:
-		raise ValueError(f"Illegal case detected, please check {testsize} {split} {dataset}")
-
-	# Save the results in a csv
-	# results_df.to_csv(os.path.join(saving_dir, filename))
-	
-	return {
-		"combine_method": combine_method,
-		"k": k,
-		"average_value": np.mean(metric_results_df['AUC-PR'].values),
-	}
-
-
 def run_experiment(k_values, combine_methods, selected_dataset_index, model_name, window_size, saving_dir):
 	# Variables and setup
 	results = []

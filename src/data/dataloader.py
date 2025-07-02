@@ -179,7 +179,7 @@ class Dataloader:
 
 		# Load time series in parallel
 		with Pool() as pool:
-			results = list(tqdm(pool.imap(self.load_timeseries_file, timeseries_files), total=len(timeseries_files), desc="Loading time series"))
+			results = list(tqdm(pool.imap(self.load_timeseries_file, timeseries_files), total=len(timeseries_files), desc="Loading windows"))
 
 		# Filter out any None results
 		df_list = [result for result in results if result is not None]
