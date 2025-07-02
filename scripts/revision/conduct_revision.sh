@@ -1,0 +1,4 @@
+sbatch scripts/revision/revision_convnet_split_TSB.sh
+sbatch scripts/revision/revision_knn_split_TSB.sh
+sbatch scripts/revision/revision_resnet_split_TSB.sh
+sbatch scripts/revision/revision_sit_split_TSB.sh
