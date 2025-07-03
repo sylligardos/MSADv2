@@ -6,15 +6,11 @@
 """
 
 
-
 import os
 import pandas as pd
 from tqdm import tqdm
-import glob
 import numpy as np
-from multiprocessing import Pool
-# from concurrent.futures import ProcessPoolExecutor, as_completed
-
+import multiprocessing
 
 
 class Dataloader:
@@ -80,7 +76,8 @@ class Dataloader:
 		path = os.path.join(self.raw_data_path, dataset)
 		timeseries_files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.out')]
 
-		with Pool() as pool:
+		num_procs = max(1, int(multiprocessing.cpu_count() * 2 / 3))
+		with multiprocessing.Pool(processes=num_procs) as pool:
 			results = list(tqdm(pool.imap(self.load_timeseries, timeseries_files), total=len(timeseries_files), desc=f"Loading {dataset}"))
 
 		x, y, fnames = zip(*[result for result in results if result is not None])
@@ -178,7 +175,8 @@ class Dataloader:
 		timeseries_files = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.csv')]
 
 		# Load time series in parallel
-		with Pool() as pool:
+		num_procs = max(1, int(multiprocessing.cpu_count() * 2 / 3))
+		with multiprocessing.Pool(processes=num_procs) as pool:
 			results = list(tqdm(pool.imap(self.load_timeseries_file, timeseries_files), total=len(timeseries_files), desc="Loading windows"))
 
 		# Filter out any None results

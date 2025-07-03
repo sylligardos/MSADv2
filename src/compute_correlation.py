@@ -10,11 +10,10 @@ import numpy as np
 import os
 from sklearn import metrics
 from tqdm import tqdm
-from multiprocessing import Pool
+import multiprocessing
 
 from data.scoreloader import Scoreloader
 from data.dataloader import Dataloader
-from utils.config import data_dir, scores_path, raw_data_path
 import argparse
 from functools import partial
 
@@ -109,7 +108,8 @@ def compute_matrix_and_save_results(experiment_dir, experiment_type):
         
         # Prepare arguments for parallel processing
         args_list = [(n_detectors, y[k], scores[k]) for k in range(n_timeseries)]
-        with Pool() as pool:
+        num_procs = max(1, int(multiprocessing.cpu_count() * 2 / 3))
+        with multiprocessing.Pool(processes=num_procs) as pool:
             if experiment_type == 'correlation':
                 matrices = list(tqdm(pool.imap(compute_auc_multiple, args_list), total=n_timeseries, desc="Computing auc"))
             elif experiment_type == 'combination':

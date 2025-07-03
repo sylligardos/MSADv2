@@ -10,7 +10,7 @@ import os
 from tqdm import tqdm
 import numpy as np 
 import pandas as pd
-from multiprocessing import Pool
+import multiprocessing
 
 
 class Scoreloader:
@@ -111,7 +111,8 @@ class Scoreloader:
 		# Prepare arguments list
 		args_list = [(filename, detectors) for filename in file_names]
 
-		with Pool() as pool:
+		num_procs = max(1, int(multiprocessing.cpu_count() * 2 / 3))
+		with multiprocessing.Pool(processes=num_procs) as pool:
 			results = list(tqdm(pool.imap(self.load_score, args_list), total=len(file_names), desc='Loading scores'))
 
 		for i, result in enumerate(results):

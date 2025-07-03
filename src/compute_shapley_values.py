@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 from tqdm import tqdm
-from multiprocessing import Pool
+import multiprocessing
 
 from data.scoreloader import Scoreloader
 from data.dataloader import Dataloader
@@ -40,7 +40,8 @@ def compute_shapley_values(experiment_dir):
                 
         # Prepare arguments for parallel processing
         args_list = [(y[k], scores[k].T) for k in range(n_timeseries)]
-        with Pool() as pool:
+        num_procs = max(1, int(multiprocessing.cpu_count() * 2 / 3))
+        with multiprocessing.Pool(processes=num_procs) as pool:
             shapley_results = list(tqdm(pool.imap(shapley_values, args_list), total=n_timeseries, desc="Computing auc"))
         shapley_results = np.stack(shapley_results)
 
